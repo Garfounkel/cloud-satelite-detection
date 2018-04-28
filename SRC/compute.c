@@ -2,6 +2,7 @@
 #include <gtk/gtk.h>
 #include <math.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 /*******************************************************
 IL EST FORMELLEMENT INTERDIT DE CHANGER LE PROTOTYPE
@@ -64,7 +65,7 @@ void sort_components(guchar* components)
         components[i] = temp;
         swapped = true;
       }
-      n = n - 1
+      n = n - 1;
     }
   } while(!swapped);
 }
@@ -85,16 +86,6 @@ void find_components(guchar* components, points_t points, int len_points, int po
     components[4] = points[i * size_line + (j + 1)].radio;
 
   sort_components(components);
-}
-
-pointVecs_t Lloyd(points_t points, int len_points, int size_line)
-{
-  guchar** cluster_centers = safe_malloc(sizeof(void*) * CLUSTER_NB);
-  init_centers(points, len_points, cluster_centers);
-
-  // guchar* components = safe_malloc(sizeof(guchar) * 5);
-
-  return cluster_centers;
 }
 
 int findClosest(guchar* pixelVec, guchar** cluster_centers)
@@ -123,6 +114,19 @@ int findClosest(guchar* pixelVec, guchar** cluster_centers)
   return index;
 }
 
+void Lloyd(points_t points, int len_points, int size_line, guchar** cluster_centers)
+{
+  init_centers(points, len_points, cluster_centers);
+
+  for (int i = 0; i < len_points; i++)
+  {
+    guchar* components = safe_malloc(sizeof(guchar) * 5);
+    find_components(components, points, len_points, i, size_line);
+
+    
+  }
+
+}
 /*---------------------------------------
   Proto:
 
@@ -172,5 +176,6 @@ void ComputeImage(guchar *pucImaOrig,
     points[iNumPix / 3].group = 0;
   }
 
-  pointVecs_t cluster_centers = Lloyd(points, iNbPixelsTotal, NbCol);
+  guchar** cluster_centers = safe_malloc(sizeof(void*) * CLUSTER_NB);
+  Lloyd(points, iNbPixelsTotal, NbCol, cluster_centers);
 }
