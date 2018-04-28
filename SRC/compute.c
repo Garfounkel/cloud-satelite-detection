@@ -10,8 +10,6 @@ DES FONCTIONS
 
 typedef struct { guchar radio; int group; } point_t, *points_t;
 
-typedef struct { guchar g1, g2, g3, g4, g5; } pointVec_t, *pointVecs_t;
-
 #define CLUSTER_NB  8
 
 void report_error(char* msg, int code)
@@ -28,34 +26,73 @@ void* safe_malloc(size_t size)
   return res;
 }
 
-void init_pointVector(pointVec_t pv, guchar g1, guchar g2, guchar g3, guchar g4, guchar g5)
+void init_pointVector(guchar* pv, guchar g1, guchar g2, guchar g3, guchar g4, guchar g5)
 {
-    pv.g1 = g1;
-    pv.g2 = g2;
-    pv.g3 = g3;
-    pv.g4 = g4;
-    pv.g5 = g5;
+  pv[0] = g1;
+  pv[1] = g2;
+  pv[2] = g3;
+  pv[3] = g4;
+  pv[4] = g5;
 }
 
-pointVecs_t init_centers(points_t points, int len_points)
+void init_centers(points_t points, int len_points, guchar** cluster_centers)
 {
-  pointVecs_t cluster_centers = safe_malloc(sizeof(pointVec_t) * CLUSTER_NB);
-
   for (int i = 0; i < CLUSTER_NB - 1; i++)
   {
     guchar cent_val = 255 * i / CLUSTER_NB;
+    cluster_centers[i] = safe_malloc(sizeof(guchar) * 5);
     init_pointVector(cluster_centers[i], cent_val, cent_val, cent_val, cent_val, cent_val);
   }
 
   // Vmax, for the cloud cluster
+  cluster_centers[CLUSTER_NB - 1] = safe_malloc(sizeof(guchar) * 5);
   init_pointVector(cluster_centers[CLUSTER_NB - 1], 255, 255, 255, 255, 255);
-
-  return cluster_centers;
 }
 
-pointVecs_t Lloyd(points_t points, int len_points)
+void sort_components(guchar* components)
 {
-  pointVecs_t cluster_centers = init_centers(points, len_points);
+  int n = 4;
+  bool swapped = false;
+  do {
+    swapped = false;
+    for (int i = 1; i < n; i++)
+    {
+      if (components[i - 1] > components[i])
+      {
+        guchar temp = components[i - 1];
+        components[i - 1] = components[i];
+        components[i] = temp;
+        swapped = true;
+      }
+      n = n - 1
+    }
+  } while(!swapped);
+}
+
+void find_components(guchar* components, points_t points, int len_points, int pos, int size_line)
+{
+  int i = pos / size_line;
+  int j = pos % size_line;
+
+  init_pointVector(components, points[pos].radio, 0, 0, 0, 0);
+  if (i - 1 >= 0)
+    components[1] = points[(i - 1) * size_line + j].radio;
+  if (i + 1 < size_line)
+    components[2] = points[(i + 1) * size_line + j].radio;
+  if (j - 1 >= 0)
+    components[3] = points[i * size_line + (j - 1)].radio;
+  if (j + 1 >= 0)
+    components[4] = points[i * size_line + (j + 1)].radio;
+
+  sort_components(components);
+}
+
+pointVecs_t Lloyd(points_t points, int len_points, int size_line)
+{
+  guchar** cluster_centers = safe_malloc(sizeof(void*) * CLUSTER_NB);
+  init_centers(points, len_points, cluster_centers);
+
+  // guchar* components = safe_malloc(sizeof(guchar) * 5);
 
   return cluster_centers;
 }
@@ -91,11 +128,11 @@ int findClosest(pointVec_t pixelVec, pointVecs_t cluster_centers)
 
   Entrees:
   --->le tableau des valeurs des pixels de l'image d'origine
-  (les lignes sont mises les unes à la suite des autres)
+  (les lignes sont mises les unes ï¿½ la suite des autres)
   --->le nombre de lignes de l'image,
   --->le nombre de colonnes de l'image,
   --->le tableau des valeurs des pixels de l'image resultat
-  (les lignes sont mises les unes à la suite des autres)
+  (les lignes sont mises les unes ï¿½ la suite des autres)
 
 
   Sortie:
@@ -106,9 +143,9 @@ int findClosest(pointVec_t pixelVec, pointVecs_t cluster_centers)
 
   ---------------------------------------*/
 void ComputeImage(guchar *pucImaOrig,
-		  int NbLine,
-		  int NbCol,
-		  guchar *pucImaRes)
+		              int NbLine,
+		              int NbCol,
+		              guchar *pucImaRes)
 {
   int iNbPixelsTotal = NbCol * NbLine;
   int iNbChannels = 3; /* on travaille sur des images couleurs*/
@@ -119,18 +156,18 @@ void ComputeImage(guchar *pucImaOrig,
   points_t points = safe_malloc(iNbPixelsTotal * sizeof(point_t));
 
   for(int iNumPix = 0; iNumPix < iNbPixelsTotal * iNbChannels; iNumPix = iNumPix + iNbChannels) {
-    /*moyenne sur les composantes RVB */
+    /* moyenne sur les composantes RVB */
     ucMeanPix = (unsigned char)
       ((*(pucImaOrig + iNumPix) +
         *(pucImaOrig + iNumPix + 1) +
         *(pucImaOrig + iNumPix + 2))/3);
     /* sauvegarde du resultat */
     for(int iNumChannel = 0; iNumChannel < iNbChannels; iNumChannel++)
-      *(pucImaRes + iNumPix + iNumChannel)= ucMeanPix;
+      *(pucImaRes + iNumPix + iNumChannel) = ucMeanPix;
 
     points[iNumPix / 3].radio = ucMeanPix;
     points[iNumPix / 3].group = 0;
   }
 
-  pointVecs_t cluster_centers = Lloyd(points, iNbPixelsTotal);
+  pointVecs_t cluster_centers = Lloyd(points, iNbPixelsTotal, NbCol);
 }
