@@ -91,7 +91,8 @@ void find_components(guchar* components, points_t points, int len_points, int po
 int findClosest(guchar* pixelVec, guchar** cluster_centers)
 { /* euclidean distance between a vector of pixels and the clusters centers */
   int min = INT_MAX;
-  int dist, index = 0;
+  int dist = 0;
+  int index = 0;
   for (int i = 0; i < CLUSTER_NB; ++i)
   {
     guchar* center = cluster_centers[i];
@@ -118,14 +119,40 @@ void Lloyd(points_t points, int len_points, int size_line, guchar** cluster_cent
 {
   init_centers(points, len_points, cluster_centers);
 
-  for (int i = 0; i < len_points; i++)
-  {
-    guchar* components = safe_malloc(sizeof(guchar) * 5);
-    find_components(components, points, len_points, i, size_line);
+  int changed;
+  do {
+    printf("starting iteration\n");
+    changed = 0;
+    for (int i = 0; i < len_points; i++)
+    {
+      guchar* components = safe_malloc(sizeof(guchar) * 5);
+      find_components(components, points, len_points, i, size_line);
 
-    
-  }
+      int closest_center = findClosest(components, cluster_centers);
+      if (closest_center != points[i].group) {
+        points[i].group = closest_center;
+        changed++;
+        printf("changing point, %d\n", closest_center);
+      }
+    }
 
+    guchar new_centers_radio[CLUSTER_NB] = { 0 };
+    guchar new_centers_nb[CLUSTER_NB] = { 0 };
+    for (int i = 0; i < len_points; i++)
+    { // Maybe try with mean of components instead of radios
+      new_centers_radio[points[i].group] += points[i].radio;
+      new_centers_nb[points[i].group] += 1;
+    }
+
+    printf("-------\n");
+    for (int i = 0; i < CLUSTER_NB; i++)
+    {
+      printf("%u", cluster_centers[i][0]);
+      guchar new_center = new_centers_radio[i] / new_centers_nb[i];
+      init_pointVector(cluster_centers[i], new_center, new_center, new_center, new_center, new_center);
+    }
+    printf("\n");
+  } while(changed > (len_points >> 10));
 }
 /*---------------------------------------
   Proto:
@@ -178,4 +205,15 @@ void ComputeImage(guchar *pucImaOrig,
 
   guchar** cluster_centers = safe_malloc(sizeof(void*) * CLUSTER_NB);
   Lloyd(points, iNbPixelsTotal, NbCol, cluster_centers);
+
+
+  for (int i = 0; i < iNbPixelsTotal; i++)
+  {
+    if (points[i].group == CLUSTER_NB - 1)
+    {
+      *(pucImaRes + (i * iNbChannels)) = 255;
+      *(pucImaRes + (i * iNbChannels) + 1) = 0;
+      *(pucImaRes + (i * iNbChannels) + 2) = 0;
+    }
+  }
 }
