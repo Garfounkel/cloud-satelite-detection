@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <gtk/gtk.h>
+#include <math.h>
+#include <stdlib.h>
 
 /*******************************************************
 IL EST FORMELLEMENT INTERDIT DE CHANGER LE PROTOTYPE
@@ -56,6 +58,29 @@ pointVecs_t Lloyd(points_t points, int len_points)
   pointVecs_t cluster_centers = init_centers(points, len_points);
 
   return cluster_centers;
+}
+
+int findClosest(pointVec_t pixelVec, pointVecs_t cluster_centers)
+{ /* euclidean distance between a vector of pixels and the clusters centers */
+  int min = INT_MAX;
+  int dist = 0;
+  for (int i = 0; i < CLUSTER_NB; ++i)
+  {
+    pointVec_t center = cluster_centers[i];
+
+    dist = pow((pixelVec.g1 - center.g1), 2)
+      + pow((pixelVec.g2 - center.g2), 2)
+      + pow((pixelVec.g3 - center.g3), 2)
+      + pow((pixelVec.g4 - center.g4), 2)
+      + pow((pixelVec.g5 - center.g5), 2);
+
+    dist = sqrt(dist);
+
+    if (dist < min)
+      min = dist;
+  }
+
+  return min;
 }
 
 /*---------------------------------------

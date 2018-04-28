@@ -20,7 +20,7 @@ all: ImaProjet.exe
 	${CC} ${CCFLAGS} -o $@ -c $<
 
 ImaProjet.exe:${OBJ_FILES}
-	${CC} -o ${EXE}/$@ ${OBJ_FILES} ${LDFLAGS}
+	${CC} -o ${EXE}/$@ ${OBJ_FILES} -lm ${LDFLAGS}
 	mv *.o ${OBJ}
 
 clean:
