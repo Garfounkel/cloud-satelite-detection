@@ -97,19 +97,19 @@ pointVecs_t Lloyd(points_t points, int len_points, int size_line)
   return cluster_centers;
 }
 
-int findClosest(pointVec_t pixelVec, pointVecs_t cluster_centers)
+int findClosest(guchar* pixelVec, guchar** cluster_centers)
 { /* euclidean distance between a vector of pixels and the clusters centers */
   int min = INT_MAX;
   int dist = 0;
   for (int i = 0; i < CLUSTER_NB; ++i)
   {
-    pointVec_t center = cluster_centers[i];
+    guchar* center = cluster_centers[i];
 
-    dist = pow((pixelVec.g1 - center.g1), 2)
-      + pow((pixelVec.g2 - center.g2), 2)
-      + pow((pixelVec.g3 - center.g3), 2)
-      + pow((pixelVec.g4 - center.g4), 2)
-      + pow((pixelVec.g5 - center.g5), 2);
+    dist = pow((pixelVec[0] - center[0]), 2)
+           + pow((pixelVec[1] - center[1]), 2)
+           + pow((pixelVec[2] - center[2]), 2)
+           + pow((pixelVec[3] - center[3]), 2)
+           + pow((pixelVec[4] - center[4]), 2);
 
     dist = sqrt(dist);
 
