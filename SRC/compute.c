@@ -10,6 +10,8 @@ typedef struct { guchar radio; int group; } point_t, *points_t;
 
 typedef struct { guchar g1, g2, g3, g4, g5; } pointVec_t, *pointVecs_t;
 
+#define CLUSTER_NB  8
+
 void report_error(char* msg, int code)
 {
   fprintf(stderr, msg);
@@ -33,24 +35,25 @@ void init_pointVector(pointVec_t pv, guchar g1, guchar g2, guchar g3, guchar g4,
     pv.g5 = g5;
 }
 
-pointVecs_t init_centers(points_t points, int len_points, int cluster_number)
+pointVecs_t init_centers(points_t points, int len_points)
 {
-  pointVecs_t cluster_centers = safe_malloc(sizeof(pointVec_t) * cluster_number);
+  pointVecs_t cluster_centers = safe_malloc(sizeof(pointVec_t) * CLUSTER_NB);
 
-  for (int i = 0; i < cluster_number - 1; i++)
+  for (int i = 0; i < CLUSTER_NB - 1; i++)
   {
-    guchar cent_val = 255 * i / 8;
+    guchar cent_val = 255 * i / CLUSTER_NB;
     init_pointVector(cluster_centers[i], cent_val, cent_val, cent_val, cent_val, cent_val);
   }
 
-  init_pointVector(cluster_centers[cluster_number], 255, 255, 255, 255, 255);
+  // Vmax, for the cloud cluster
+  init_pointVector(cluster_centers[CLUSTER_NB - 1], 255, 255, 255, 255, 255);
 
   return cluster_centers;
 }
 
-pointVecs_t Lloyd(points_t points, int len_points, int cluster_number)
+pointVecs_t Lloyd(points_t points, int len_points)
 {
-  pointVecs_t cluster_centers = init_centers(points, len_points, cluster_number);
+  pointVecs_t cluster_centers = init_centers(points, len_points);
 
   return cluster_centers;
 }
@@ -104,5 +107,5 @@ void ComputeImage(guchar *pucImaOrig,
     points[iNumPix / 3].group = 0;
   }
 
-  pointVecs_t cluster_centers = Lloyd(points, iNbPixelsTotal, 8);
+  pointVecs_t cluster_centers = Lloyd(points, iNbPixelsTotal);
 }
