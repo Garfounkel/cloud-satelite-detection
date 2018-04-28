@@ -38,11 +38,11 @@ void init_pointVector(guchar* pv, guchar g1, guchar g2, guchar g3, guchar g4, gu
 
 void init_centers(points_t points, int len_points, guchar** cluster_centers)
 {
-  for (int i = 0; i < CLUSTER_NB - 1; i++)
+  for (int i = 1; i < CLUSTER_NB; i++)
   {
     guchar cent_val = 255 * i / CLUSTER_NB;
-    cluster_centers[i] = safe_malloc(sizeof(guchar) * 5);
-    init_pointVector(cluster_centers[i], cent_val, cent_val, cent_val, cent_val, cent_val);
+    cluster_centers[i - 1] = safe_malloc(sizeof(guchar) * 5);
+    init_pointVector(cluster_centers[i - 1], cent_val, cent_val, cent_val, cent_val, cent_val);
   }
 
   // Vmax, for the cloud cluster
@@ -109,6 +109,7 @@ void Lloyd(points_t points, int len_points, int size_line, guchar** cluster_cent
   init_centers(points, len_points, cluster_centers);
 
   int changed;
+  int nb_iteration = 0;
   do {
     changed = 0;
     for (int i = 0; i < len_points; i++)
@@ -123,22 +124,24 @@ void Lloyd(points_t points, int len_points, int size_line, guchar** cluster_cent
       }
     }
 
-    guchar new_centers_radio[CLUSTER_NB] = { 0 };
-    guchar new_centers_nb[CLUSTER_NB] = { 0 };
+    unsigned int new_centers_radio[CLUSTER_NB] = { 0 };
+    unsigned int new_centers_nb[CLUSTER_NB] = { 0 };
     for (int i = 0; i < len_points; i++)
     { // Maybe try with mean of components instead of radios
       new_centers_radio[points[i].group] += points[i].radio;
       new_centers_nb[points[i].group] += 1;
     }
 
-    printf("-------\n");
+    printf("------- iteration: %d -------\n", nb_iteration);
     for (int i = 0; i < CLUSTER_NB; i++)
     {
       printf("%u, ", cluster_centers[i][0]);
       guchar new_center = (guchar)((float)new_centers_radio[i] / (float)new_centers_nb[i]);
+      printf("%u / %u = %u\n", new_centers_radio[i], new_centers_nb[i], new_center);
       init_pointVector(cluster_centers[i], new_center, new_center, new_center, new_center, new_center);
     }
     printf("\n");
+    nb_iteration++;
   } while(changed > (len_points >> 10));
 }
 /*---------------------------------------
@@ -197,9 +200,9 @@ void ComputeImage(guchar *pucImaOrig,
   for (int i = 0; i < iNbPixelsTotal; i++)
   {
     //printf("pt(i = %d, radio = %u, group = %u)\n", i, points[i].radio, points[i].group);
-    if (points[i].group == CLUSTER_NB - 1)
+    if (points[i].group > CLUSTER_NB - 1)
     {
-      printf("pt(i = %d, radio = %u, group = %u)\n", i, points[i].radio, points[i].group);
+      //printf("pt(i = %d, radio = %u, group = %u)\n", i, points[i].radio, points[i].group);
       *(pucImaRes + (i * iNbChannels)) = 255;
       *(pucImaRes + (i * iNbChannels) + 1) = 0;
       *(pucImaRes + (i * iNbChannels) + 2) = 0;
