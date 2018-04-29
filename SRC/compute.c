@@ -215,4 +215,11 @@ void ComputeImage(guchar *pucImaOrig,
       *(pucImaRes + (i * iNbChannels) + 2) = 0;
     }
   }
+
+  for (int i = 0; i < CLUSTER_NB; i++)
+  {
+    free(cluster_centers[i]);
+  }
+  free(cluster_centers);
+  free(points);
 }
