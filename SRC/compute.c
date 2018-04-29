@@ -52,10 +52,6 @@ void init_centers(points_t points, int len_points, guchar** cluster_centers)
 
 static int cmp_guchar(const void *p1, const void *p2)
 {
-   /* The actual arguments to this function are "pointers to
-      pointers to char", but strcmp(3) arguments are "pointers
-      to char", hence the following cast plus dereference */
-
      return (* (char * const *) p1 >  * (char * const *) p2);
 }
 
@@ -77,7 +73,7 @@ void find_components(guchar* components, points_t points, int len_points, int po
   qsort(components, 5, sizeof(guchar), cmp_guchar);
 }
 
-int findClosest(guchar* pixelVec, guchar** cluster_centers)
+int find_closest(guchar* pixelVec, guchar** cluster_centers)
 { /* euclidean distance between a vector of pixels and the clusters centers */
   int min = INT_MAX;
   int dist = 0;
@@ -110,39 +106,50 @@ void Lloyd(points_t points, int len_points, int size_line, guchar** cluster_cent
 
   int changed;
   int nb_iteration = 0;
+  guchar* components = safe_malloc(sizeof(guchar) * 5);
   do {
     changed = 0;
     for (int i = 0; i < len_points; i++)
     {
-      guchar* components = safe_malloc(sizeof(guchar) * 5);
       find_components(components, points, len_points, i, size_line);
 
-      int closest_center = findClosest(components, cluster_centers);
+      int closest_center = find_closest(components, cluster_centers);
       if (closest_center != points[i].group) {
         points[i].group = closest_center;
         changed++;
       }
     }
 
-    unsigned int new_centers_radio[CLUSTER_NB] = { 0 };
+    unsigned int new_centers_radio[CLUSTER_NB][5] = { 0 };
     unsigned int new_centers_nb[CLUSTER_NB] = { 0 };
     for (int i = 0; i < len_points; i++)
     { // Maybe try with mean of components instead of radios
-      new_centers_radio[points[i].group] += points[i].radio;
+      find_components(components, points, len_points, i, size_line);
+      for (int j = 0; j < 5; j++)
+      {
+        new_centers_radio[points[i].group][j] += components[j];
+      }
       new_centers_nb[points[i].group] += 1;
     }
 
     printf("------- iteration: %d -------\n", nb_iteration);
     for (int i = 0; i < CLUSTER_NB; i++)
     {
-      printf("%u, ", cluster_centers[i][0]);
-      guchar new_center = (guchar)((float)new_centers_radio[i] / (float)new_centers_nb[i]);
-      printf("%u / %u = %u\n", new_centers_radio[i], new_centers_nb[i], new_center);
-      init_pointVector(cluster_centers[i], new_center, new_center, new_center, new_center, new_center);
+      guchar new_center[5] = { 0 };
+      for (int j = 0; j < 5; j++)
+      {
+        new_center[j] = (guchar)((float)new_centers_radio[i][j] / (float)new_centers_nb[i]);
+      }
+      printf("cluster %d: [%u, %u, %u, %u, %u] -> ", i + 1, cluster_centers[i][0], cluster_centers[i][1], cluster_centers[i][2], cluster_centers[i][3], cluster_centers[i][4]);
+      printf("[%u, %u, %u, %u, %u]\n", new_center[0], new_center[1], new_center[2], new_center[3], new_center[4]);
+      //printf("%u / %u = %u\n", new_centers_radio[i], new_centers_nb[i], new_center);
+      init_pointVector(cluster_centers[i], new_center[0], new_center[1], new_center[2], new_center[3], new_center[4]);
     }
     printf("\n");
     nb_iteration++;
   } while(changed > (len_points >> 10));
+
+  free(components);
 }
 /*---------------------------------------
   Proto:
@@ -200,7 +207,7 @@ void ComputeImage(guchar *pucImaOrig,
   for (int i = 0; i < iNbPixelsTotal; i++)
   {
     //printf("pt(i = %d, radio = %u, group = %u)\n", i, points[i].radio, points[i].group);
-    if (points[i].group > CLUSTER_NB - 1)
+    if (points[i].group >= CLUSTER_NB - 1)
     {
       //printf("pt(i = %d, radio = %u, group = %u)\n", i, points[i].radio, points[i].group);
       *(pucImaRes + (i * iNbChannels)) = 255;
