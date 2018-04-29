@@ -138,7 +138,10 @@ void Lloyd(points_t points, int len_points, int size_line, guchar** cluster_cent
       guchar new_center[5] = { 0 };
       for (int j = 0; j < 5; j++)
       {
-        new_center[j] = (guchar)((float)new_centers_radio[i][j] / (float)new_centers_nb[i]);
+        if (new_centers_nb[i] > 0)
+          new_center[j] = (guchar)((float)new_centers_radio[i][j] / (float)new_centers_nb[i]);
+        else
+          new_center[j] = cluster_centers[i][j];
       }
       printf("cluster %d: [%u, %u, %u, %u, %u] -> ", i + 1, cluster_centers[i][0], cluster_centers[i][1], cluster_centers[i][2], cluster_centers[i][3], cluster_centers[i][4]);
       printf("[%u, %u, %u, %u, %u]\n", new_center[0], new_center[1], new_center[2], new_center[3], new_center[4]);
