@@ -9,7 +9,12 @@ IL EST FORMELLEMENT INTERDIT DE CHANGER LE PROTOTYPE
 DES FONCTIONS
 *******************************************************/
 
-typedef struct { guchar radio; int group; } point_t, *points_t;
+typedef struct
+{
+  guchar radio;
+  guchar *components;
+  int group;
+} point_t, *points_t;
 
 #define CLUSTER_NB 8
 
@@ -55,22 +60,23 @@ static int cmp_guchar(const void *p1, const void *p2)
      return (* (char * const *) p1 >  * (char * const *) p2);
 }
 
-void find_components(guchar* components, points_t points, int len_points, int pos, int size_line)
+void set_components(points_t points, int pos, int size_line, int size_col)
 {
   int i = pos / size_line;
   int j = pos % size_line;
 
-  init_pointVector(components, points[pos].radio, 0, 0, 0, 0);
+  points[pos].components = safe_malloc(sizeof(guchar) * 5);
+  init_pointVector(points[pos].components, points[pos].radio, 0, 0, 0, 0);
   if (i - 1 >= 0)
-    components[1] = points[(i - 1) * size_line + j].radio;
+    points[pos].components[1] = points[(i - 1) * size_line + j].radio;
   if (i + 1 < size_line)
-    components[2] = points[(i + 1) * size_line + j].radio;
+    points[pos].components[2] = points[(i + 1) * size_line + j].radio;
   if (j - 1 >= 0)
-    components[3] = points[i * size_line + (j - 1)].radio;
-  if (j + 1 >= 0)
-    components[4] = points[i * size_line + (j + 1)].radio;
+    points[pos].components[3] = points[i * size_line + (j - 1)].radio;
+  if (j + 1 < size_col)
+    points[pos].components[4] = points[i * size_line + (j + 1)].radio;
 
-  qsort(components, 5, sizeof(guchar), cmp_guchar);
+  qsort(points[pos].components, 5, sizeof(guchar), cmp_guchar);
 }
 
 int find_closest(guchar* pixelVec, guchar** cluster_centers)
@@ -106,14 +112,11 @@ void Lloyd(points_t points, int len_points, int size_line, guchar** cluster_cent
 
   int changed;
   int nb_iteration = 0;
-  guchar* components = safe_malloc(sizeof(guchar) * 5);
   do {
     changed = 0;
     for (int i = 0; i < len_points; i++)
     {
-      find_components(components, points, len_points, i, size_line);
-
-      int closest_center = find_closest(components, cluster_centers);
+      int closest_center = find_closest(points[i].components, cluster_centers);
       if (closest_center != points[i].group) {
         points[i].group = closest_center;
         changed++;
@@ -123,16 +126,15 @@ void Lloyd(points_t points, int len_points, int size_line, guchar** cluster_cent
     unsigned int new_centers_radio[CLUSTER_NB][5] = { 0 };
     unsigned int new_centers_nb[CLUSTER_NB] = { 0 };
     for (int i = 0; i < len_points; i++)
-    { // Maybe try with mean of components instead of radios
-      find_components(components, points, len_points, i, size_line);
+    {
       for (int j = 0; j < 5; j++)
       {
-        new_centers_radio[points[i].group][j] += components[j];
+        new_centers_radio[points[i].group][j] += points[i].components[j];
       }
       new_centers_nb[points[i].group] += 1;
     }
 
-    printf("------- iteration: %d -------\n", nb_iteration);
+    //printf("------- iteration: %d -------\n", nb_iteration);
     for (int i = 0; i < CLUSTER_NB; i++)
     {
       guchar new_center[5] = { 0 };
@@ -143,17 +145,88 @@ void Lloyd(points_t points, int len_points, int size_line, guchar** cluster_cent
         else
           new_center[j] = cluster_centers[i][j];
       }
-      printf("cluster %d: [%u, %u, %u, %u, %u] -> ", i + 1, cluster_centers[i][0], cluster_centers[i][1], cluster_centers[i][2], cluster_centers[i][3], cluster_centers[i][4]);
-      printf("[%u, %u, %u, %u, %u]\n", new_center[0], new_center[1], new_center[2], new_center[3], new_center[4]);
-      //printf("%u / %u = %u\n", new_centers_radio[i], new_centers_nb[i], new_center);
+      //printf("[%u, %u, %u, %u, %u]\n", new_center[0], new_center[1], new_center[2], new_center[3], new_center[4]);
       init_pointVector(cluster_centers[i], new_center[0], new_center[1], new_center[2], new_center[3], new_center[4]);
     }
-    printf("\n");
     nb_iteration++;
+    //printf("\n");
+    printf(".");
+    fflush(stdout);
   } while(changed > (len_points >> 10));
-
-  free(components);
+  printf(" (%d iterations) ", nb_iteration);
 }
+
+void ComputeKmeans(int NbCol,
+                   int iNbPixelsTotal,
+                   points_t points,
+                   guchar *pucImaRes,
+                   guchar *pucImaOrig)
+{
+  int iNbChannels = 3; /* on travaille sur des images couleurs*/
+
+  /* Segmentation de l'image (niveaux de gris) */
+  for(int iNumPix = 0; iNumPix < iNbPixelsTotal * iNbChannels; iNumPix = iNumPix + iNbChannels) {
+    /* moyenne sur les composantes RVB */
+    guchar ucMeanPix = (unsigned char)
+      ((*(pucImaOrig + iNumPix) +
+        *(pucImaOrig + iNumPix + 1) +
+        *(pucImaOrig + iNumPix + 2))/3);
+    /* sauvegarde du resultat */
+    for(int iNumChannel = 0; iNumChannel < iNbChannels; iNumChannel++)
+      *(pucImaRes + iNumPix + iNumChannel) = ucMeanPix;
+
+    points[iNumPix / 3].radio = ucMeanPix;
+    points[iNumPix / 3].group = 0;
+  }
+
+  /* Linking each points to its neighbours */
+  for (int i = 0; i < iNbPixelsTotal; i++)
+  {
+    set_components(points, i, NbCol, iNbPixelsTotal / NbCol);
+  }
+
+  guchar** cluster_centers = safe_malloc(sizeof(void*) * CLUSTER_NB);
+  /* k-means (Lloyd's version) */
+  Lloyd(points, iNbPixelsTotal, NbCol, cluster_centers);
+
+  for (int i = 0; i < CLUSTER_NB; i++)
+  {
+    free(cluster_centers[i]);
+  }
+  free(cluster_centers);
+}
+
+// Used in main_auto:
+double ComputeImageCloudRatio(guchar *pucImaOrig,
+          		               int NbLine,
+          		               int NbCol,
+          		               guchar *pucImaRes)
+{
+  int iNbPixelsTotal = NbCol * NbLine;
+
+  points_t points = safe_malloc(iNbPixelsTotal * sizeof(point_t));
+
+  ComputeKmeans(NbCol, iNbPixelsTotal, points, pucImaRes, pucImaOrig);
+
+  int cloudPixels = 0;
+  for (int i = 0; i < iNbPixelsTotal; i++)
+  {
+    if (points[i].group >= CLUSTER_NB - 1)
+    {
+      cloudPixels++;
+    }
+  }
+
+  for (int i = 0; i < NbLine * NbCol; i++)
+  {
+    free(points[i].components);
+  }
+  free(points);
+
+  double cloudRatio = ((double)cloudPixels / iNbPixelsTotal) * 100;
+  return cloudRatio;
+}
+
 /*---------------------------------------
   Proto:
 
@@ -183,46 +256,22 @@ void ComputeImage(guchar *pucImaOrig,
 {
   int iNbPixelsTotal = NbCol * NbLine;
   int iNbChannels = 3; /* on travaille sur des images couleurs*/
-  guchar ucMeanPix;
 
-  printf("Segmentation de l'image.... A vous!\n");
 
   points_t points = safe_malloc(iNbPixelsTotal * sizeof(point_t));
 
-  for(int iNumPix = 0; iNumPix < iNbPixelsTotal * iNbChannels; iNumPix = iNumPix + iNbChannels) {
-    /* moyenne sur les composantes RVB */
-    ucMeanPix = (unsigned char)
-      ((*(pucImaOrig + iNumPix) +
-        *(pucImaOrig + iNumPix + 1) +
-        *(pucImaOrig + iNumPix + 2))/3);
-    /* sauvegarde du resultat */
-    for(int iNumChannel = 0; iNumChannel < iNbChannels; iNumChannel++)
-      *(pucImaRes + iNumPix + iNumChannel) = ucMeanPix;
+  ComputeKmeans(NbCol, iNbPixelsTotal, points, pucImaRes, pucImaOrig);
 
-    points[iNumPix / 3].radio = ucMeanPix;
-    points[iNumPix / 3].group = 0;
-  }
-
-  guchar** cluster_centers = safe_malloc(sizeof(void*) * CLUSTER_NB);
-  Lloyd(points, iNbPixelsTotal, NbCol, cluster_centers);
-
-
+  /* draw red pixels on clouds */
   for (int i = 0; i < iNbPixelsTotal; i++)
   {
-    //printf("pt(i = %d, radio = %u, group = %u)\n", i, points[i].radio, points[i].group);
     if (points[i].group >= CLUSTER_NB - 1)
     {
-      //printf("pt(i = %d, radio = %u, group = %u)\n", i, points[i].radio, points[i].group);
       *(pucImaRes + (i * iNbChannels)) = 255;
       *(pucImaRes + (i * iNbChannels) + 1) = 0;
       *(pucImaRes + (i * iNbChannels) + 2) = 0;
     }
   }
 
-  for (int i = 0; i < CLUSTER_NB; i++)
-  {
-    free(cluster_centers[i]);
-  }
-  free(cluster_centers);
   free(points);
 }

@@ -5,6 +5,30 @@
 #include "compute.h"
 #include <dirent.h>
 
+double compute_image(char* path)
+{
+  GdkPixbuf *pGdkPixbufImaOrig = gdk_pixbuf_new_from_file (path, NULL);
+  // echec du chargement de l'image en memoire
+  if (pGdkPixbufImaOrig == NULL){
+    printf("Impossible de charger le fichier %s\n", path);
+    exit(0);
+  }
+
+  /* copie du pixbuff original */
+  GdkPixbuf *pGdkPixbufImaRes = gdk_pixbuf_copy(pGdkPixbufImaOrig);
+
+  /* recuperation du nombre de lignes et de colonnes de l'image*/
+  int NbCol = gdk_pixbuf_get_width(pGdkPixbufImaOrig);
+  int NbLine = gdk_pixbuf_get_height(pGdkPixbufImaOrig);
+
+  /* recuperation du tableau des pixels de l'image originale */
+  guchar *pucImaOrig = gdk_pixbuf_get_pixels(pGdkPixbufImaOrig);
+  /* recuperation du tableau des pixels de l'image resultat */
+  guchar *pucImaRes = gdk_pixbuf_get_pixels(pGdkPixbufImaRes);
+
+  return ComputeImageCloudRatio(pucImaOrig, NbLine, NbCol, pucImaRes);
+}
+
 int main (int argc, char **argv)
 {
   DIR *dir;
@@ -13,7 +37,10 @@ int main (int argc, char **argv)
   {
     while ((ent = readdir (dir)) != NULL)
     {
-      printf ("%s\n", ent->d_name);
+      /* Only bmp files */
+      if (strncmp(ent->d_name + strlen(ent->d_name) - 4, ".bmp", 4) == 0) {
+        printf ("%s: %f%%\n", ent->d_name, compute_image(ent->d_name));
+      }
     }
     closedir (dir);
   }
@@ -23,13 +50,4 @@ int main (int argc, char **argv)
     perror ("");
     return EXIT_FAILURE;
   }
-
-  /*
-  GdkPixbuf* pGdkPixbufImaIn = gdk_pixbuf_new_from_file (pcFileName,NULL);
-  // echec du chargement de l'image en memoire
-  if (pGdkPixbufImaIn == NULL){
-    printf("Impossible de charger le fichier %s\n", pcFileName);
-    exit(0);
-  }
-  */
 }
