@@ -11,7 +11,7 @@ DES FONCTIONS
 
 typedef struct { guchar radio; int group; } point_t, *points_t;
 
-#define CLUSTER_NB  8
+#define CLUSTER_NB 8
 
 void report_error(char* msg, int code)
 {

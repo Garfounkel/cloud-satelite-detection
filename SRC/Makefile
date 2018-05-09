@@ -13,15 +13,19 @@ LDFLAGS=`pkg-config --libs gtk+-2.0`
 
 #compilation
 OBJ_FILES=compute.o main.o
+OBJ_FILES_AUTO=compute.o main_auto.o
 
-all: ImaProjet.exe
+all: imaProjet.exe imaProjet_auto.exe
+	mv *.o ${OBJ}
 
 .c.o:
 	${CC} ${CCFLAGS} -o $@ -c $<
 
-ImaProjet.exe:${OBJ_FILES}
+imaProjet.exe:${OBJ_FILES}
 	${CC} -o ${EXE}/$@ ${OBJ_FILES} -lm ${LDFLAGS}
-	mv *.o ${OBJ}
+
+imaProjet_auto.exe:${OBJ_FILES_AUTO}
+	${CC} -o ${EXE}/$@ ${OBJ_FILES_AUTO} -lm ${LDFLAGS}
 
 clean:
 	\rm -f ${OBJ}/*.o ../*/core ${EXE}/*.exe
