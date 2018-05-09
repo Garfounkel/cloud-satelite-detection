@@ -144,13 +144,15 @@ void Lloyd(points_t points, int len_points, int size_line, guchar** cluster_cent
           new_center[j] = (guchar)((float)new_centers_radio[i][j] / (float)new_centers_nb[i]);
         else
           new_center[j] = cluster_centers[i][j];
+        if (i == CLUSTER_NB - 1 && new_center[j] < 125)
+          new_center[j] = cluster_centers[i][j];
       }
       //printf("[%u, %u, %u, %u, %u]\n", new_center[0], new_center[1], new_center[2], new_center[3], new_center[4]);
       init_pointVector(cluster_centers[i], new_center[0], new_center[1], new_center[2], new_center[3], new_center[4]);
     }
     nb_iteration++;
     //printf("\n");
-    printf(".");
+    //printf(".");
     fflush(stdout);
   } while(changed > (len_points >> 10));
   printf(" (%d iterations) ", nb_iteration);
