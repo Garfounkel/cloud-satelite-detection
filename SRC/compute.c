@@ -44,15 +44,11 @@ void init_centers(points_t points, int len_points, guchar **cluster_centers) {
     cluster_centers[i - 1] = safe_malloc(sizeof(guchar) * 5);
     init_pointVector(cluster_centers[i - 1], cent_val, cent_val, cent_val,
                      cent_val, cent_val);
-
-    // printf("[%u, %u, %u, %u, %u]\n", cent_val, cent_val, cent_val, cent_val,
-    // cent_val);
   }
 
   // Vmax, for the cloud cluster
   cluster_centers[CLUSTER_NB - 1] = safe_malloc(sizeof(guchar) * 5);
   init_pointVector(cluster_centers[CLUSTER_NB - 1], 255, 255, 255, 255, 255);
-  // printf("[%u, %u, %u, %u, %u]\n", 255, 255, 255, 255, 255);
 }
 
 static int cmp_guchar(const void *p1, const void *p2) {
@@ -80,7 +76,6 @@ void set_components(points_t points, int pos, int size_line, int size_col) {
 
 /* euclidean distance between a vector of pixels and the clusters centers */
 int find_closest(guchar *pixelVec, guchar **cluster_centers) {
-  // printf("--------\n");
   int min = INT_MAX;
   int dist = 0;
   int index = 0;
@@ -99,7 +94,6 @@ int find_closest(guchar *pixelVec, guchar **cluster_centers) {
     // dist = sqrt(dist);
 
     if (dist < min) {
-      // printf("new min: %d, index: %d\n", dist, i);
       changedAtLeastOnce = 1;
       min = dist;
       index = i;
@@ -111,15 +105,10 @@ int find_closest(guchar *pixelVec, guchar **cluster_centers) {
          can only grow) */
       break;
     } else {
-      // printf("dist: %d\n", dist);
       notChanged++;
     }
   }
 
-  // if (index == CLUSTER_NB - 3) {
-  //   printf("[%u, %u, %u, %u, %u], dist: %d\n", pixelVec[0], pixelVec[1],
-  //          pixelVec[2], pixelVec[3], pixelVec[4], dist);
-  // }
   return index;
 }
 
@@ -145,8 +134,6 @@ void Lloyd(points_t points, int len_points, int size_line,
       new_centers_nb[points[i].group] += 1;
     }
 
-    // break;
-    // printf("------- iteration: %d -------\n", nb_iteration);
     for (int i = 0; i < CLUSTER_NB; i++) {
       guchar new_center[5] = {0};
       for (int j = 0; j < 5; j++) {
@@ -158,15 +145,10 @@ void Lloyd(points_t points, int len_points, int size_line,
         if (i == CLUSTER_NB - 1 && new_center[j] < 125)
           new_center[j] = cluster_centers[i][j];
       }
-      // printf("[%u, %u, %u, %u, %u]\n", new_center[0], new_center[1],
-      // new_center[2], new_center[3], new_center[4]);
       init_pointVector(cluster_centers[i], new_center[0], new_center[1],
                        new_center[2], new_center[3], new_center[4]);
     }
     nb_iteration++;
-    // printf("\n");
-    // printf(".");
-    // fflush(stdout);
   } while (changed > (len_points >> 8));
   printf("[%d iterations] ", nb_iteration);
 }
@@ -269,16 +251,6 @@ void ComputeImage(guchar *pucImaOrig, int NbLine, int NbCol,
       *(pucImaRes + (i * iNbChannels) + 1) = 0;
       *(pucImaRes + (i * iNbChannels) + 2) = 0;
     }
-    // if (points[i].group == CLUSTER_NB - 2) {
-    //   *(pucImaRes + (i * iNbChannels)) = 0;
-    //   *(pucImaRes + (i * iNbChannels) + 1) = 0;
-    //   *(pucImaRes + (i * iNbChannels) + 2) = 255;
-    // }
-    // if (points[i].group == CLUSTER_NB - 3) {
-    //   *(pucImaRes + (i * iNbChannels)) = 0;
-    //   *(pucImaRes + (i * iNbChannels) + 1) = 255;
-    //   *(pucImaRes + (i * iNbChannels) + 2) = 0;
-    // }
   }
 
   free(points);
