@@ -94,7 +94,9 @@ int find_closest(guchar *pixelVec, guchar **cluster_centers) {
         pow((pixelVec[2] - center[2]), 2) + pow((pixelVec[3] - center[3]), 2) +
         pow((pixelVec[4] - center[4]), 2);
 
-    dist = sqrt(dist);
+    // No need for square root in our distance since sqrt(x) < sqrt(y) is
+    // the same as x < y
+    // dist = sqrt(dist);
 
     if (dist < min) {
       // printf("new min: %d, index: %d\n", dist, i);
