@@ -1,15 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <gtk/gtk.h>
-#include <math.h>
 #include "compute.h"
 #include <dirent.h>
+#include <gtk/gtk.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-double compute_image(char* path)
-{
-  GdkPixbuf *pGdkPixbufImaOrig = gdk_pixbuf_new_from_file (path, NULL);
+double compute_image(char *path) {
+  GdkPixbuf *pGdkPixbufImaOrig = gdk_pixbuf_new_from_file(path, NULL);
   // echec du chargement de l'image en memoire
-  if (pGdkPixbufImaOrig == NULL){
+  if (pGdkPixbufImaOrig == NULL) {
     printf("Impossible de charger le fichier %s\n", path);
     exit(0);
   }
@@ -29,25 +28,20 @@ double compute_image(char* path)
   return ComputeImageCloudRatio(pucImaOrig, NbLine, NbCol, pucImaRes);
 }
 
-int main (int argc, char **argv)
-{
+int main(int argc, char **argv) {
   DIR *dir;
   struct dirent *ent;
-  if ((dir = opendir (".")) != NULL)
-  {
-    while ((ent = readdir (dir)) != NULL)
-    {
+  if ((dir = opendir(".")) != NULL) {
+    while ((ent = readdir(dir)) != NULL) {
       /* Only bmp files */
       if (strncmp(ent->d_name + strlen(ent->d_name) - 4, ".bmp", 4) == 0) {
-        printf ("%s: %f%%\n", ent->d_name, compute_image(ent->d_name));
+        printf("%s: %f%%\n", ent->d_name, compute_image(ent->d_name));
       }
     }
-    closedir (dir);
-  }
-  else
-  {
+    closedir(dir);
+  } else {
     /* could not open directory */
-    perror ("");
+    perror("");
     return EXIT_FAILURE;
   }
 }
