@@ -1,4 +1,4 @@
-Various improvements where made to our k-means algorithm in order to
+Various improvements were made to our k-means algorithm in order to
 improve performances.
 
 These optimizations are:
